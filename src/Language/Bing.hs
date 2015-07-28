@@ -22,6 +22,7 @@ import Data.Monoid
 import Control.Applicative
 import Data.DateTime
 import Data.Text (Text)
+import qualified Data.Text as T
 import Network.URL (decString)
 import Text.XML.Light.Input
 import Text.XML.Light.Types
@@ -174,7 +175,10 @@ translateM text from to = do
     Just (Elem e) -> return $ strContent e
     _ -> BM $ \_ -> throwE $ BingError $ pack $ show res
 
-evalBing :: ByteString -> ByteString -> BingMonad a -> IO (Either BingError a)
+evalBing :: ClientId -> ClientSecret -> BingMonad a -> IO (Either BingError a)
 evalBing clientId clientSecret action = runExceptT $ do
   t <- getAccessToken clientId clientSecret
   runBing action t
+
+translate :: ClientId -> ClientSecret -> String -> BingLanguage -> BingLanguage -> IO (Either BingError String)
+translate cid cs text from to = evalBing cid cs (translateM (T.pack text) from to)
