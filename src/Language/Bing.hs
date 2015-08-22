@@ -28,6 +28,9 @@ import Text.XML.Light.Input
 import Text.XML.Light.Types
 import Text.XML.Light.Proc
 import Data.List (find)
+import qualified Data.Text.Encoding as TE
+import qualified Data.Text.IO as TIO
+import System.IO.Unsafe (unsafePerformIO)
 
 type ClientId = ByteString
 
@@ -168,11 +171,11 @@ translateM text from to = do
              & N.param "category" .~ ["general"]
              & N.param "text" .~ [text]
   res <- getWithAuth opts translateUrl
-  let trans = parseXML $ res ^. N.responseBody
+  let trans = parseXML $ (TE.decodeUtf8 $ BLC.toStrict $ res ^. N.responseBody)
   case find (\n -> case n of
                 Elem e -> "string" == (qName $ elName e)
                 _ -> False) trans of
-    Just (Elem e) -> return $ strContent e
+    Just (Elem e) -> return $ T.pack $ strContent e
     _ -> BM $ \_ -> throwE $ BingError $ pack $ show res
 
 evalBing :: ClientId -> ClientSecret -> BingMonad a -> IO (Either BingError a)
@@ -180,5 +183,5 @@ evalBing clientId clientSecret action = runExceptT $ do
   t <- getAccessToken clientId clientSecret
   runBing action t
 
-translate :: ClientId -> ClientSecret -> String -> BingLanguage -> BingLanguage -> IO (Either BingError String)
-translate cid cs text from to = evalBing cid cs (translateM (T.pack text) from to)
+translate :: ClientId -> ClientSecret -> Text -> BingLanguage -> BingLanguage -> IO (Either BingError Text)
+translate cid cs text from to = evalBing cid cs (translateM text from to)
