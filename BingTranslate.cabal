@@ -3,7 +3,7 @@
 
 name:                MicrosoftTranslator
 version:             0.1.0.0
-synopsis:            Frontend for the Bing Translate api. https://www.microsoft.com/translator/getstarted.aspx
+synopsis:            Interface for Microsoft Translator
 description:
   A simple library to use Microsoft Translator
   (<https://www.microsoft.com/en-us/translator/default.aspx>) in Haskell.
@@ -26,6 +26,9 @@ category:            Language
 build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
+source-repository head
+  type: git
+  location: https://github.com/netogallo/Microsoft-Translator-Haskell.git
 
 library
   exposed-modules:     Language.Bing
