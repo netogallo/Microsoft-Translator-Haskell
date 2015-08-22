@@ -15,7 +15,7 @@ description:
   > translate :: ClientId -> ClientSecret -> Text -> BingLanguage -> BingLanguage -> IO (Either BingError Text)
 
  To use this library one must have an account for Microsoft Translator in the
- Azure Data Market. More information about this package available at:
+ Azure Data Market. More information about this package available at: (<https://github.com/netogallo/Microsoft-Translator-Haskell>).
 
 license:             BSD3
 license-file:        LICENSE
