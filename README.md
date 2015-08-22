@@ -9,5 +9,5 @@ The simplest way to use Microsoft Translator is through the toplevel
 translate function:
 
 ```
-translate :: ClientId -> ClientSecret -> Text -> BingLanguage -> BingLanguage -> IO (Either BingError Text
+translate :: ClientId -> ClientSecret -> Text -> BingLanguage -> BingLanguage -> IO (Either BingError Text)
 ```
