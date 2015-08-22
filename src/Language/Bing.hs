@@ -1,5 +1,15 @@
 {-# Language RecordWildCards, OverloadedStrings, DeriveDataTypeable #-}
-module Language.Bing where
+module Language.Bing(
+  BingLanguage(..),
+  BingError(..),
+  ClientId,
+  ClientSecret,
+  checkToken,
+  evalBing,
+  getAccessToken,
+  runBing,
+  translate,
+  translateM) where
 
 import qualified Network.Wreq as N
 import Network.Wreq.Types (Postable)
@@ -39,12 +49,18 @@ type ClientSecret = ByteString
 data BingError = BingError ByteString
                  deriving (Typeable, Show)
 
+-- | The languages available for Microsoft Translatorj
 data BingLanguage = English
                   | German
+                  | Norwegian
+                  | Spanish
 
+-- | Conversion function from Language to language code
 toSym bl = case bl of
   English -> "en"
   German -> "de"
+  Norwegian -> "no"
+  Spanish -> "es"
 
 data AccessToken = AccessToken {
   tokenType :: ByteString,
@@ -133,6 +149,8 @@ getWithAuth opts' url = withContext $ \BCTX{..} -> do
   let opts = opts' & N.header "Authorization" .~ ["Bearer " <> token accessToken]
   bingAction (N.getWith opts url)
 
+-- | Request a new access token from Azure using the specified client
+-- id and client secret
 getAccessToken :: ByteString -> ByteString -> ExceptT BingError IO BingContext
 getAccessToken clientId clientSecret = do
   req <- post tokenAuthPage  [
@@ -150,7 +168,9 @@ getAccessToken clientId clientSecret = do
     clientId = clientId,
     clientSecret = clientSecret
     }
-  
+
+-- | Check if the access token of the running BingAction is still
+-- valid. If the token has expired, renews the token automatically
 checkToken :: BingContext -> ExceptT BingError IO BingContext
 checkToken ctx@BCTX{..} = do
   t <- liftIO $ getCurrentTime
@@ -163,7 +183,8 @@ checkToken ctx@BCTX{..} = do
 
 withContext = BM
 
--- translateM :: ByteString -> BingLanguage -> BingLanguage -> BingMonad (N.Response BLC.ByteString)
+-- | Action that translates text inside a BingMonad context.
+translateM :: Text -> BingLanguage -> BingLanguage -> BingMonad Text
 translateM text from to = do
   let opts = N.defaults & N.param "from" .~ [toSym from :: Text]
              & N.param "to" .~ [toSym to]
@@ -178,10 +199,16 @@ translateM text from to = do
     Just (Elem e) -> return $ T.pack $ strContent e
     _ -> BM $ \_ -> throwE $ BingError $ pack $ show res
 
+-- | Helper function that evaluates a BingMonad action. It simply
+-- requests and access token and uses the token for evaluation.
 evalBing :: ClientId -> ClientSecret -> BingMonad a -> IO (Either BingError a)
 evalBing clientId clientSecret action = runExceptT $ do
   t <- getAccessToken clientId clientSecret
   runBing action t
 
+-- | Toplevel wrapper that translates a text. It is only recommended if translation
+-- is invoked less often than every 10 minutes since it always
+-- requests a new access token.  For better performance use
+-- translateM, runBing and getAccessToken
 translate :: ClientId -> ClientSecret -> Text -> BingLanguage -> BingLanguage -> IO (Either BingError Text)
 translate cid cs text from to = evalBing cid cs (translateM text from to)
