@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                MicrosoftTranslator
-version:             0.1.0.0
+version:             0.1.0.1
 synopsis:            Interface for Microsoft Translator
 description:
   A simple library to use Microsoft Translator
@@ -10,12 +10,14 @@ description:
   It provides an easy to use interface to the free translation service from
   Microsoft so one can easily add language translation to a Haskell program
   as long as there is internet connection available.
-  
+  .  
   The easiest way to use the program is via the toplevel translate function:
+  .
   > translate :: ClientId -> ClientSecret -> Text -> BingLanguage -> BingLanguage -> IO (Either BingError Text)
-
- To use this library one must have an account for Microsoft Translator in the
- Azure Data Market. More information about this package available at: (<https://github.com/netogallo/Microsoft-Translator-Haskell>).
+  .
+  To use this library one must have an account for Microsoft Translator in the
+  Azure Data Market. More information about this package available at:
+  (<https://github.com/netogallo/Microsoft-Translator-Haskell>).
 
 license:             BSD3
 license-file:        LICENSE

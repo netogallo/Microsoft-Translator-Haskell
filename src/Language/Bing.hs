@@ -1,13 +1,17 @@
 {-# Language RecordWildCards, OverloadedStrings, DeriveDataTypeable #-}
 module Language.Bing(
   BingLanguage(..),
+  BingContext,
   BingError(..),
   ClientId,
   ClientSecret,
   checkToken,
   evalBing,
+  execBing,
   getAccessToken,
+  getAccessTokenEither,
   runBing,
+  runExceptT,
   translate,
   translateM) where
 
@@ -74,7 +78,7 @@ data BingContext = BCTX {
   inception :: DateTime,
   clientId :: ByteString,
   clientSecret :: ByteString
-  } deriving Show
+  } deriving (Show,Typeable)
 
 newtype BingMonad a = BM {runBing :: BingContext -> ExceptT BingError IO a}
 
@@ -205,6 +209,19 @@ evalBing :: ClientId -> ClientSecret -> BingMonad a -> IO (Either BingError a)
 evalBing clientId clientSecret action = runExceptT $ do
   t <- getAccessToken clientId clientSecret
   runBing action t
+
+getBingCtx :: BingMonad BingContext
+getBingCtx = BM {runBing = \ctx -> return ctx}
+
+execBing :: BingContext -> BingMonad a -> IO (Either BingError (a,BingContext))
+execBing ctx action = runExceptT $ do
+  flip runBing ctx $ do
+    res <- action
+    ctx <- getBingCtx
+    return (res,ctx)
+
+getAccessTokenEither :: ClientId -> ClientSecret -> IO (Either BingError BingContext)
+getAccessTokenEither clientId clientSecret = runExceptT $ getAccessToken clientId clientSecret
 
 -- | Toplevel wrapper that translates a text. It is only recommended if translation
 -- is invoked less often than every 10 minutes since it always
