@@ -10,6 +10,7 @@ module Language.Bing(
   execBing,
   getAccessToken,
   getAccessTokenEither,
+  getBingCtx,
   runBing,
   runExceptT,
   translate,
@@ -45,6 +46,8 @@ import Data.List (find)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import System.IO.Unsafe (unsafePerformIO)
+import Control.Monad.Trans.Class
+import Control.Monad.IO.Class
 
 type ClientId = ByteString
 
@@ -80,9 +83,9 @@ data BingContext = BCTX {
   clientSecret :: ByteString
   } deriving (Show,Typeable)
 
-newtype BingMonad a = BM {runBing :: BingContext -> ExceptT BingError IO a}
+newtype BingMonad m a = BM {runBing :: BingContext -> ExceptT BingError m a}
 
-instance Monad BingMonad where
+instance (Monad m, MonadIO m) => Monad (BingMonad m) where
   m >>= f = BM (\ctx' -> do
                    ctx <- checkToken ctx'
                    res <- runBing m ctx
@@ -90,17 +93,23 @@ instance Monad BingMonad where
             
   return a = BM $ \ctx -> return a
 
-instance Functor BingMonad where
+instance (Monad m, MonadIO m) => Functor (BingMonad m) where
   fmap f bm = do
     v <- bm
     return $ f v
 
-instance Applicative BingMonad where
+instance (Monad m, MonadIO m) => Applicative (BingMonad m) where
   pure a = return a
   a <*> b = do
     a' <- a
     b' <- b
     return (a' b')
+
+instance MonadTrans BingMonad where
+  lift m = BM $ \ctx -> lift m
+
+instance MonadIO m => MonadIO (BingMonad m) where
+  liftIO io = BM $ \ctx -> liftIO io
 
 instance FromJSON AccessToken where
   parseJSON (Object v) = build <$>
@@ -138,9 +147,9 @@ translateArgs text from to = [
   ("to" N.:= (toSym to :: ByteString))
   ]
 
-bingAction :: IO (N.Response BL.ByteString) -> ExceptT BingError IO (N.Response BL.ByteString)
+bingAction :: MonadIO m => IO (N.Response BL.ByteString) -> ExceptT BingError m (N.Response BL.ByteString)
 bingAction action = do
-  res <- lift $ (E.try action :: IO (Either HttpException (N.Response BL.ByteString)))
+  res <- lift $ (liftIO $ (E.try action :: IO (Either HttpException (N.Response BL.ByteString))))
   case res of
     Right res -> return res
     Left ex -> throwE $ BingError $ pack $ show ex
@@ -155,7 +164,7 @@ getWithAuth opts' url = withContext $ \BCTX{..} -> do
 
 -- | Request a new access token from Azure using the specified client
 -- id and client secret
-getAccessToken :: ByteString -> ByteString -> ExceptT BingError IO BingContext
+getAccessToken :: MonadIO m => ByteString -> ByteString -> ExceptT BingError m BingContext
 getAccessToken clientId clientSecret = do
   req <- post tokenAuthPage  [
     "client_id" N.:= clientId,
@@ -163,7 +172,7 @@ getAccessToken clientId clientSecret = do
     scopeArg,
     grantType
     ]
-  r <- N.asJSON req
+  r <- liftIO $ N.asJSON req
   let t = r ^. N.responseBody
   t' <- liftIO $ getCurrentTime
   return $ BCTX{
@@ -175,7 +184,7 @@ getAccessToken clientId clientSecret = do
 
 -- | Check if the access token of the running BingAction is still
 -- valid. If the token has expired, renews the token automatically
-checkToken :: BingContext -> ExceptT BingError IO BingContext
+checkToken :: MonadIO m => BingContext -> ExceptT BingError m BingContext
 checkToken ctx@BCTX{..} = do
   t <- liftIO $ getCurrentTime
   if diffSeconds t inception > expires accessToken - 100 then do
@@ -188,7 +197,7 @@ checkToken ctx@BCTX{..} = do
 withContext = BM
 
 -- | Action that translates text inside a BingMonad context.
-translateM :: Text -> BingLanguage -> BingLanguage -> BingMonad Text
+translateM :: MonadIO m => Text -> BingLanguage -> BingLanguage -> BingMonad m Text
 translateM text from to = do
   let opts = N.defaults & N.param "from" .~ [toSym from :: Text]
              & N.param "to" .~ [toSym to]
@@ -205,15 +214,15 @@ translateM text from to = do
 
 -- | Helper function that evaluates a BingMonad action. It simply
 -- requests and access token and uses the token for evaluation.
-evalBing :: ClientId -> ClientSecret -> BingMonad a -> IO (Either BingError a)
+evalBing :: MonadIO m => ClientId -> ClientSecret -> BingMonad m a -> m (Either BingError a)
 evalBing clientId clientSecret action = runExceptT $ do
   t <- getAccessToken clientId clientSecret
   runBing action t
 
-getBingCtx :: BingMonad BingContext
+getBingCtx :: Monad m => BingMonad m BingContext
 getBingCtx = BM {runBing = \ctx -> return ctx}
 
-execBing :: BingContext -> BingMonad a -> IO (Either BingError (a,BingContext))
+execBing :: MonadIO m => BingContext -> BingMonad m a -> m (Either BingError (a,BingContext))
 execBing ctx action = runExceptT $ do
   flip runBing ctx $ do
     res <- action

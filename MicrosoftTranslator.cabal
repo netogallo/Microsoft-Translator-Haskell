@@ -5,8 +5,7 @@ name:                MicrosoftTranslator
 version:             0.1.0.1
 synopsis:            Interface for Microsoft Translator
 description:
-  A simple library to use Microsoft Translator
-  (<https://www.microsoft.com/en-us/translator/default.aspx>) in Haskell.
+  A simple library to use <https://www.microsoft.com/en-us/translator/default.aspx Microsoft Translator> in Haskell.
   It provides an easy to use interface to the free translation service from
   Microsoft so one can easily add language translation to a Haskell program
   as long as there is internet connection available.
@@ -16,8 +15,8 @@ description:
   > translate :: ClientId -> ClientSecret -> Text -> BingLanguage -> BingLanguage -> IO (Either BingError Text)
   .
   To use this library one must have an account for Microsoft Translator in the
-  Azure Data Market. More information about this package available at:
-  (<https://github.com/netogallo/Microsoft-Translator-Haskell>).
+  Azure Data Market. More information about this package available 
+  <https://github.com/netogallo/Microsoft-Translator-Haskell here>.
 
 license:             BSD3
 license-file:        LICENSE
