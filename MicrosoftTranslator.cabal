@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                MicrosoftTranslator
-version:             0.1.0.1
+version:             0.1.0.2
 synopsis:            Interface for Microsoft Translator
 description:
   A simple library to use <https://www.microsoft.com/en-us/translator/default.aspx Microsoft Translator> in Haskell.
