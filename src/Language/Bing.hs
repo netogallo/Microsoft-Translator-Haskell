@@ -36,6 +36,7 @@ import Control.Applicative ((<$>),(<*>))
 import Data.Monoid
 import Control.Applicative
 import Data.DateTime
+import Data.String (IsString)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Network.URL (decString)
@@ -56,18 +57,117 @@ type ClientSecret = ByteString
 data BingError = BingError ByteString
                  deriving (Typeable, Show)
 
--- | The languages available for Microsoft Translatorj
-data BingLanguage = English
+-- | The languages available for Microsoft Translator
+data BingLanguage = Afrikaans
+                  | Arabic
+                  | Bosnian
+                  | Bulgarian
+                  | Catalan
+                  | ChineseSimplified
+                  | ChineseTraditional
+                  | Croatian
+                  | Czech
+                  | Danish
+                  | Dutch
+                  | English
+                  | Estonian
+                  | Finnish
+                  | French
                   | German
+                  | Greek
+                  | HaitianCreole
+                  | Hebrew
+                  | Hindi
+                  | HmongDaw
+                  | Hungarian
+                  | Indonesian
+                  | Italian
+                  | Japanese
+                  | Kiswahili
+                  | Klingon
+                  | KlingonPIqaD
+                  | Korean
+                  | Latvian
+                  | Lithuanian
+                  | Malay
+                  | Maltese
                   | Norwegian
+                  | Persian
+                  | Polish
+                  | Portuguese
+                  | QueretaroOtomi
+                  | Romanian
+                  | Russian
+                  | SerbianCyrillic
+                  | SerbianLatin
+                  | Slovak
+                  | Slovenian
                   | Spanish
+                  | Swedish
+                  | Thai
+                  | Turkish
+                  | Ukrainian
+                  | Urdu
+                  | Vietnamese
+                  | Welsh
+                  | YucatecMaya
+
 
 -- | Conversion function from Language to language code
-toSym bl = case bl of
-  English -> "en"
-  German -> "de"
-  Norwegian -> "no"
-  Spanish -> "es"
+toSym :: IsString a => BingLanguage -> a
+toSym Afrikaans = "af"
+toSym Arabic = "ar"
+toSym Bosnian = "bs-Latn"
+toSym Bulgarian = "bg"
+toSym Catalan = "ca"
+toSym ChineseSimplified = "zh-CHS"
+toSym ChineseTraditional = "zh-CHT"
+toSym Croatian = "hr"
+toSym Czech = "cs"
+toSym Danish = "da"
+toSym Dutch = "nl"
+toSym English = "en"
+toSym Estonian = "et"
+toSym Finnish = "fi"
+toSym French = "fr"
+toSym German = "de"
+toSym Greek = "el"
+toSym HaitianCreole = "ht"
+toSym Hebrew = "he"
+toSym Hindi = "hi"
+toSym HmongDaw = "mww"
+toSym Hungarian = "hu"
+toSym Indonesian = "id"
+toSym Italian = "it"
+toSym Japanese = "ja"
+toSym Kiswahili = "sw"
+toSym Klingon = "tlh"
+toSym KlingonPIqaD = "tlh-Qaak"
+toSym Korean = "ko"
+toSym Latvian = "lv"
+toSym Lithuanian = "lt"
+toSym Malay = "ms"
+toSym Maltese = "mt"
+toSym Norwegian = "no"
+toSym Persian = "fa"
+toSym Polish = "pl"
+toSym Portuguese = "pt"
+toSym QueretaroOtomi = "otq"
+toSym Romanian = "ro"
+toSym Russian = "ru"
+toSym SerbianCyrillic = "sr-Cyrl"
+toSym SerbianLatin = "sr-Latn"
+toSym Slovak = "sk"
+toSym Slovenian = "sl"
+toSym Spanish = "es"
+toSym Swedish = "sv"
+toSym Thai = "th"
+toSym Turkish = "tr"
+toSym Ukrainian = "uk"
+toSym Urdu = "ur"
+toSym Vietnamese = "vi"
+toSym Welsh = "cy"
+toSym YucatecMaya = "yua"
 
 data AccessToken = AccessToken {
   tokenType :: ByteString,
@@ -90,7 +190,7 @@ instance (Monad m, MonadIO m) => Monad (BingMonad m) where
                    ctx <- checkToken ctx'
                    res <- runBing m ctx
                    runBing (f res) ctx)
-            
+
   return a = BM $ \ctx -> return a
 
 instance (Monad m, MonadIO m) => Functor (BingMonad m) where
@@ -117,7 +217,7 @@ instance FromJSON AccessToken where
                          v .: "access_token" <*>
                          ((v .: "expires_in") >>= getNum) <*>
                          v .: "scope"
-    
+
     where
       getNum str = case decode (BLC.pack str) of
         Just n -> return n
@@ -140,7 +240,7 @@ tokenAuthPage = "https://datamarket.accesscontrol.windows.net/v2/OAuth2-13"
 translateUrl :: String
 translateUrl = "http://api.microsofttranslator.com/v2/Http.svc/Translate"
 -- translateUrl = "http://requestb.in/14zmco81"
- 
+
 translateArgs text from to = [
   ("text" N.:= (text :: ByteString)),
   ("from" N.:= (toSym from :: ByteString)),
@@ -154,7 +254,7 @@ bingAction action = do
     Right res -> return res
     Left ex -> throwE $ BingError $ pack $ show ex
 
-post url postable = bingAction (N.post url postable) 
+post url postable = bingAction (N.post url postable)
 
 postWith opts url postable = bingAction (N.postWith opts url postable)
 
